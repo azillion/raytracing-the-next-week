@@ -1,6 +1,6 @@
-# Raytracing in One Weekend in WebGPU
+# Raytracing: The Next Week in WebGPU
 
-This is a port of the code in the book [Ray Tracing in One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.html) to WebGPU.
+This is a port of the code in the book [Ray Tracing: The Next Week](https://raytracing.github.io/books/RayTracingTheNextWeek.html) to WebGPU.
 
 ## Running
 ```sh
