@@ -23,7 +23,7 @@ export async function initWebGPU(canvas: HTMLCanvasElement) {
     return { device, context, presentationFormat };
 }
 
-const NUM_SPHERES = 30;
+const NUM_SPHERES = 100;
 
 const constants = `
 const PI: f32 = 3.1415926535897932385;
@@ -323,7 +323,7 @@ struct Camera {
 }
 
 fn createCamera(aspect_ratio: f32) -> Camera {
-    let samples_per_pixel: u32 = 200;
+    let samples_per_pixel: u32 = 100;
     let vfov = 20.0;
     let lookfrom = vec3<f32>(13.0, 2.0, 3.0);
     let lookat = vec3<f32>(0.0, 0.0, 0.0);
@@ -655,7 +655,7 @@ async function main() {
     const { device, context, presentationFormat } = await initWebGPU(canvas);
 
     // for now we will hardcode the canvas size
-    const width = canvas.getBoundingClientRect().width;
+    const width = 400;
     const aspectRation = 16.0 / 9.0;
     const height = Math.floor(width / aspectRation);
     canvas.width = Math.max(1, Math.min(width, device.limits.maxTextureDimension2D));
