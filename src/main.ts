@@ -23,14 +23,17 @@ export async function initWebGPU(canvas: HTMLCanvasElement) {
     return { device, context, presentationFormat };
 }
 
-const NUM_SPHERES = 100;
+const NUM_SPHERES = 10;
+const NUM_SAMPLES_PER_PIXEL = 16;
+const WIDTH = 1200;
 
 const constants = `
 const PI: f32 = 3.1415926535897932385;
 const INFINITY: f32 = 1e38;
 const SEED: vec2<f32> = vec2<f32>(69.68, 4.20);
-const MAX_DEPTH: u32 = 100;
+const MAX_DEPTH: u32 = 64;
 const NUM_SPHERES: u32 = ${NUM_SPHERES};
+const NUM_SAMPLES_PER_PIXEL: u32 = ${NUM_SAMPLES_PER_PIXEL};
 `;
 
 const helpers = `
@@ -323,13 +326,13 @@ struct Camera {
 }
 
 fn createCamera(aspect_ratio: f32) -> Camera {
-    let samples_per_pixel: u32 = 100;
+    let samples_per_pixel: u32 = NUM_SAMPLES_PER_PIXEL;
     let vfov = 20.0;
     let lookfrom = vec3<f32>(13.0, 2.0, 3.0);
     let lookat = vec3<f32>(0.0, 0.0, 0.0);
     let vup = vec3<f32>(0.0, 1.0, 0.0);
     let defocus_angle = 0.6;
-    let focus_distance = 10.0;
+    let focus_distance = 15.0;
 
     let theta = degreesToRadians(vfov);
     let h = tan(theta / 2.0);
@@ -383,16 +386,11 @@ function createComputeShader(device: GPUDevice, textureSize: { width: number, he
                 direction: vec3<f32>
             }
 
-            const MATERIAL_GROUND: Material = Material(vec3<f32>(0.8, 0.8, 0.0), 0.0, 0.0, 0);
-            const MATERIAL_CENTER: Material = Material(vec3<f32>(0.1, 0.2, 0.5), 0.0, 0.0, 0);
-            const MATERIAL_LEFT: Material = Material(vec3<f32>(0.8, 0.8, 0.8), 0.0, 1.5, 2);
-            const MATERIAL_BUBBLE: Material = Material(vec3<f32>(1.0, 1.0, 1.0), 0.0, 1.0/1.5, 2);
-            const MATERIAL_RIGHT: Material = Material(vec3<f32>(0.8, 0.6, 0.2), 1.0, 0.0, 1);
-
-            const R = cos(PI / 4.0);
-
-            // const TEMP_MATERIAL_LEFT: Material = Material(vec3<f32>(0.0, 0.0, 1.0), 0.0, 0.0, 0);
-            // const TEMP_MATERIAL_RIGHT: Material = Material(vec3<f32>(1.0, 0.0, 0.0), 0.0, 0.0, 0);
+            // const MATERIAL_GROUND: Material = Material(vec3<f32>(0.8, 0.8, 0.0), 0.0, 0.0, 0);
+            // const MATERIAL_CENTER: Material = Material(vec3<f32>(0.1, 0.2, 0.5), 0.0, 0.0, 0);
+            // const MATERIAL_LEFT: Material = Material(vec3<f32>(0.8, 0.8, 0.8), 0.0, 1.5, 2);
+            // const MATERIAL_BUBBLE: Material = Material(vec3<f32>(1.0, 1.0, 1.0), 0.0, 1.0/1.5, 2);
+            // const MATERIAL_RIGHT: Material = Material(vec3<f32>(0.8, 0.6, 0.2), 1.0, 0.0, 1);
 
             // const spheres = array<Sphere, 5>(
             //     Sphere(vec3<f32>(0.0, -100.5, -1.0), 100.0, MATERIAL_GROUND),
@@ -400,16 +398,7 @@ function createComputeShader(device: GPUDevice, textureSize: { width: number, he
             //     Sphere(vec3<f32>(-1.0, 0.0, -1.0), 0.5, MATERIAL_LEFT),
             //     Sphere(vec3<f32>(-1.0, 0.0, -1.0), 0.4, MATERIAL_BUBBLE),
             //     Sphere(vec3<f32>(1.0, 0.0, -1.0), 0.5, MATERIAL_RIGHT)
-            //     //Sphere(vec3<f32>(-R, 0.0, -1.0), R, TEMP_MATERIAL_LEFT),
-            //     //Sphere(vec3<f32>(R, 0.0, -1.0), R, TEMP_MATERIAL_RIGHT)
             // );
-
-            fn createRay(uv: vec2<f32>) -> Ray {
-                let aspectRatio = f32(textureDimensions(output).x) / f32(textureDimensions(output).y);
-                let origin = vec3<f32>(0.0, 0.0, 0.0);
-                let direction = vec3<f32>(uv.x * aspectRatio, uv.y, -1.0);
-                return Ray(origin, normalize(direction));
-            }
 
             fn rayColor(initial_ray: Ray, world: array<Sphere, NUM_SPHERES>, seed: vec2<u32>) -> vec3<f32> {
                 var ray = initial_ray;
@@ -471,7 +460,7 @@ function createComputeShader(device: GPUDevice, textureSize: { width: number, he
 
                 // Three large spheres
                 spheres[1] = Sphere(vec3<f32>(0.0, 1.0, 0.0), 1.0, Material(vec3<f32>(1.0), 0.0, 1.5, 2)); // Glass
-                spheres[2] = Sphere(vec3<f32>(-4.0, 1.0, 0.0), 1.0, Material(vec3<f32>(0.4, 0.2, 0.1), 0.0, 0.0, 0)); // Lambertian
+                spheres[2] = Sphere(vec3<f32>(-4.0, 1.0, 0.0), 1.0, Material(vec3<f32>(0.8, 0.1, 0.3), 0.0, 0.0, 0)); // Lambertian
                 spheres[3] = Sphere(vec3<f32>(4.0, 1.0, 0.0), 1.0, Material(vec3<f32>(0.7, 0.6, 0.5), 0.0, 0.0, 1)); // Metal
 
                 // Random small spheres
@@ -655,7 +644,7 @@ async function main() {
     const { device, context, presentationFormat } = await initWebGPU(canvas);
 
     // for now we will hardcode the canvas size
-    const width = 400;
+    const width = WIDTH;
     const aspectRation = 16.0 / 9.0;
     const height = Math.floor(width / aspectRation);
     canvas.width = Math.max(1, Math.min(width, device.limits.maxTextureDimension2D));
