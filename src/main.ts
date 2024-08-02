@@ -413,7 +413,6 @@ function createComputeShader(device: GPUDevice, textureSize: { width: number, he
                     if (rec.hit) {
                         current_seed = vec2<u32>(hash(current_seed), depth);
 
-                        //let direction = randomOnHemisphere(rec.normal, current_seed);
                         let direction = rec.normal + randUnitVector(current_seed);
 
                         var scatterRec: ScatterRecord;
