@@ -538,7 +538,7 @@ function createComputeShader(device: GPUDevice, textureSize: { width: number, he
     });
 
     // After creating spheresBuffer
-    const sphereData = new Float32Array(NUM_SPHERES * 12); // 8 floats per sphere (3 for center, 1 for radius, 4 for material)
+    const sphereData = new Float32Array(NUM_SPHERES * 12); 
 
     for (let i = 0; i < NUM_SPHERES; i++) {
         const offset = i * 12;
