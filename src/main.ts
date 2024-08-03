@@ -537,7 +537,7 @@ function createComputeShader(device: GPUDevice, textureSize: { width: number, he
     });
 
     // After creating spheresBuffer
-    const sphereData = new Float32Array(NUM_SPHERES * 12); 
+    const sphereData = new Float32Array(NUM_SPHERES * 12);
 
     for (let i = 0; i < NUM_SPHERES; i++) {
         const offset = i * 12;
@@ -559,8 +559,6 @@ function createComputeShader(device: GPUDevice, textureSize: { width: number, he
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
 
-    // After creating spheresBuffer
-    // Fill sphereData with your sphere information
     device.queue.writeBuffer(spheresBuffer, 0, sphereData);
 
     const texture = device.createTexture({
