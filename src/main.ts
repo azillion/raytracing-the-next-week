@@ -1,6 +1,8 @@
 import "./style.css";
 let renderTime = performance.now();
 
+// TODO: Add BVH support
+
 export async function initWebGPU(canvas: HTMLCanvasElement) {
     if (!navigator.gpu) {
         throw new Error("WebGPU not supported on this browser.");
