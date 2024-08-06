@@ -25,7 +25,7 @@ export async function initWebGPU(canvas: HTMLCanvasElement) {
     return { device, context, presentationFormat };
 }
 
-const NUM_SPHERES = 10;
+const NUM_SPHERES = 12;
 const NUM_SAMPLES_PER_PIXEL = 16;
 const WIDTH = 1200;
 
