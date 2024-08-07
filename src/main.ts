@@ -2,6 +2,9 @@ import "./style.css";
 let renderTime = performance.now();
 
 // TODO: Add BVH support
+//
+//
+// NOTTODO: We won't be adding motion blur for now
 
 export async function initWebGPU(canvas: HTMLCanvasElement) {
     if (!navigator.gpu) {
