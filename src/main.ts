@@ -1,4 +1,5 @@
 import "./style.css";
+import * as dat from 'dat.gui';
 let renderTime = performance.now();
 
 // TODO: Add BVH support
@@ -32,16 +33,22 @@ const NUM_SPHERES = 12;
 const NUM_SAMPLES_PER_PIXEL = 16;
 const WIDTH = 1200;
 
-const constants = `
+var properties = {
+    numSpheres: NUM_SPHERES,
+    numSamplesPerPixel: NUM_SAMPLES_PER_PIXEL
+};
+
+function buildShaderCode(mainShaderCode: string) {
+    const constants = `
 const PI: f32 = 3.1415926535897932385;
 const INFINITY: f32 = 1e38;
 const SEED: vec2<f32> = vec2<f32>(69.68, 4.20);
 const MAX_DEPTH: u32 = 64;
-const NUM_SPHERES: u32 = ${NUM_SPHERES};
-const NUM_SAMPLES_PER_PIXEL: u32 = ${NUM_SAMPLES_PER_PIXEL};
+const NUM_SPHERES: u32 = ${properties.numSpheres};
+const NUM_SAMPLES_PER_PIXEL: u32 = ${properties.numSamplesPerPixel};
 `;
 
-const helpers = `
+    const helpers = `
 fn lerp(a: vec3<f32>, b: vec3<f32>, t: f32) -> vec3<f32> {
     return a * (1.0 - t) + b * t;
 }
@@ -136,7 +143,7 @@ fn nearZero(v: vec3<f32>) -> bool {
 }
 `;
 
-const intervalShader = `
+    const intervalShader = `
 struct Interval {
     minI: f32,
     maxI: f32,
@@ -166,7 +173,7 @@ const INTERVAL_EMPTY: Interval = Interval(INFINITY, -INFINITY);
 const INTERVAL_UNIVERSE: Interval = Interval(-INFINITY, INFINITY);
 `;
 
-const materialShader = `
+    const materialShader = `
 struct Material {
     albedo: vec3<f32>,
     fuzziness: f32,
@@ -222,7 +229,7 @@ fn scatterDielectric(r: Ray, rec: HitRecord, material: Material, seed: vec2<u32>
 }
 `;
 
-const hittableShapesShader = `
+    const hittableShapesShader = `
 struct Sphere {
     center: vec3<f32>,
     radius: f32,
@@ -310,7 +317,7 @@ fn hit_spheres(r: Ray, world: array<Sphere, NUM_SPHERES>, ray_t: Interval) -> Hi
 }
 `;
 
-const cameraShader = `
+    const cameraShader = `
 struct Camera {
     origin: vec3<f32>,
     lower_left_corner: vec3<f32>,
@@ -375,17 +382,11 @@ fn getRay(camera: Camera, s: f32, t: f32, seed: vec2<u32>) -> Ray {
     );
 }
 `;
+    return constants + helpers + intervalShader + materialShader + hittableShapesShader + cameraShader + mainShaderCode;
+}
 
 function createComputeShader(device: GPUDevice, textureSize: { width: number, height: number }) {
-    const module = device.createShaderModule({
-        label: "Compute shader",
-        code: `
-            ${constants}
-            ${helpers}
-            ${intervalShader}
-            ${materialShader}
-            ${hittableShapesShader}
-            ${cameraShader}
+    const mainShaderCode = `
             struct Ray {
                 origin: vec3<f32>,
                 direction: vec3<f32>
@@ -529,7 +530,10 @@ function createComputeShader(device: GPUDevice, textureSize: { width: number, he
 
                 textureStore(output, vec2<i32>(coords), vec4<f32>(pixel_color, 1.0));
             }
-        `
+        `;
+    const module = device.createShaderModule({
+        label: "Compute shader",
+        code: buildShaderCode(mainShaderCode)
     });
 
     const pipeline = device.createComputePipeline({
@@ -542,9 +546,9 @@ function createComputeShader(device: GPUDevice, textureSize: { width: number, he
     });
 
     // After creating spheresBuffer
-    const sphereData = new Float32Array(NUM_SPHERES * 12);
+    const sphereData = new Float32Array(properties.numSpheres * 12);
 
-    for (let i = 0; i < NUM_SPHERES; i++) {
+    for (let i = 0; i < properties.numSpheres; i++) {
         const offset = i * 12;
         sphereData[offset] = 0; // center.x
         sphereData[offset + 1] = 0; // center.y
@@ -641,6 +645,11 @@ function createRenderPipeline(device: GPUDevice, format: GPUTextureFormat) {
     });
 }
 
+var gui = new dat.GUI({ name: 'My GUI' });
+gui.useLocalStorage = true;
+var numSpheres = gui.add(properties, 'numSpheres', 1, 50).step(1);
+var numSamplesPerPixel = gui.add(properties, 'numSamplesPerPixel', 1, 64).step(1);
+
 async function main() {
     const canvas = document.getElementById("canvas") as HTMLCanvasElement;
     const { device, context, presentationFormat } = await initWebGPU(canvas);
@@ -702,37 +711,51 @@ async function main() {
         device.queue.submit([commandEncoder.finish()]);
     }
 
-    const observer = new ResizeObserver(entries => {
-        for (const entry of entries) {
-            const renderTime = performance.now();
-            const canvas = entry.target as HTMLCanvasElement;
-            canvas.width = Math.max(1, Math.min(width, device.limits.maxTextureDimension2D));
-            canvas.height = Math.max(1, Math.min(height, device.limits.maxTextureDimension2D));
+    // const observer = new ResizeObserver(entries => {
+    //     for (const entry of entries) {
+    //         const renderTime = performance.now();
+    //         const canvas = entry.target as HTMLCanvasElement;
+    //         canvas.width = Math.max(1, Math.min(width, device.limits.maxTextureDimension2D));
+    //         canvas.height = Math.max(1, Math.min(height, device.limits.maxTextureDimension2D));
+    //
+    //         // Update context configuration
+    //         context.configure({
+    //             device,
+    //             format: presentationFormat,
+    //             size: [canvas.width, canvas.height]
+    //         });
+    //
+    //         // Recreate compute shader with new size
+    //         textureSize = { width: canvas.width, height: canvas.height };
+    //         computeShader = createComputeShader(device, textureSize);
+    //
+    //         // Update bind groups
+    //         updateBindGroups();
+    //
+    //         // Re-render
+    //         render();
+    //         console.log("Rerender time:", performance.now() - renderTime);
+    //     }
+    // });
 
-            // Update context configuration
-            context.configure({
-                device,
-                format: presentationFormat,
-                size: [canvas.width, canvas.height]
-            });
-
-            // Recreate compute shader with new size
-            textureSize = { width: canvas.width, height: canvas.height };
-            computeShader = createComputeShader(device, textureSize);
-
-            // Update bind groups
-            updateBindGroups();
-
-            // Re-render
-            render();
-            console.log("Rerender time:", performance.now() - renderTime);
-        }
-    });
-
-    observer.observe(canvas);
+    // observer.observe(canvas);
 
     // Initial render
     render();
+
+    numSpheres.onChange((value: number) => {
+        properties.numSpheres = value;
+        computeShader = createComputeShader(device, textureSize);
+        updateBindGroups();
+        render();
+    });
+
+    numSamplesPerPixel.onChange((value: number) => {
+        properties.numSamplesPerPixel = value;
+        computeShader = createComputeShader(device, textureSize);
+        updateBindGroups();
+        render();
+    });
 }
 
 main().then(() =>
