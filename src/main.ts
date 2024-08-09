@@ -169,6 +169,11 @@ fn clampInterval(i: Interval, minI: f32, maxI: f32) -> f32 {
     return min(max(i.minI, minI), maxI);
 }
 
+fn expandInterval(i: Interval, delta: f32) -> Interval {
+    let padding = delta / 2.0;
+    return Interval(i.minI - padding, i.maxI + padding);
+}
+
 const INTERVAL_EMPTY: Interval = Interval(INFINITY, -INFINITY);
 const INTERVAL_UNIVERSE: Interval = Interval(-INFINITY, INFINITY);
 `;
