@@ -179,6 +179,78 @@ const INTERVAL_EMPTY: Interval = Interval(INFINITY, -INFINITY);
 const INTERVAL_UNIVERSE: Interval = Interval(-INFINITY, INFINITY);
 `;
 
+    const aabbShader = `
+struct AABB {
+    x: Interval,
+    y: Interval,
+    z: Interval,
+}
+
+fn createAABBXYZ(x: Interval, y: Interval, z: Interval) -> AABB {
+    return AABB(x, y, z);
+}
+
+fn createAABB(a: vec3<f32>, b: vec3<f32>) -> AABB {
+    var x = createInterval(a.x, b.x);
+    var y = createInterval(a.y, b.y);
+    var z = createInterval(a.z, b.z);
+    if (a.x > b.x) {
+        x = createInterval(b.x, a.x);
+    }
+
+    if (a.y > b.y) {
+        y = createInterval(b.y, a.y);
+    }
+
+    if (a.z > b.z) {
+        z = createInterval(b.z, a.z);
+    }
+
+    return createAABBXYZ(x, y, z);
+}
+
+fn axisInterval(aabb: AABB, axis: u32) -> Interval {
+    if (axis == 1) {
+        return aabb.y;
+    }
+    if (axis == 2) {
+        return aabb.z;
+    }
+    return aabb.x;
+}
+
+fn hitAABB(aabb: AABB, r: Ray, t: Interval) -> bool {
+    var tmut = t;
+    for (var a = 0u; a < 3u; a++) {
+        let ax = axisInterval(aabb, a);
+        let axInv = 1.0 / r.direction[a];
+
+        let t0 = (ax.minI - r.origin[a]) * axInv;
+        let t1 = (ax.maxI - r.origin[a]) * axInv;
+
+        if (t0 < t1) {
+            if (t0 > tmut.minI) {
+                tmut.minI = t0;
+            }
+            if (t1 < tmut.maxI) {
+                tmut.maxI = t1;
+            }
+        } else {
+            if (t1 > tmut.minI) {
+                tmut.minI = t1;
+            }
+            if (t0 < tmut.maxI) {
+                tmut.maxI = t0;
+            }
+        }
+
+        if (tmut.maxI <= tmut.minI) {
+            return false;
+        }
+    }
+    return true;
+`;
+
     const materialShader = `
 struct Material {
     albedo: vec3<f32>,
