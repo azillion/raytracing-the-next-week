@@ -3,7 +3,7 @@ import "./style.css";
 import * as dat from 'dat.gui';
 let renderTime = performance.now();
 
-// TODO: Add BVH support
+// TODO: Add BVH support?
 //
 //
 // NOTTODO: We won't be adding motion blur for now
